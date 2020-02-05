@@ -6,7 +6,7 @@ testing_mode=0
 compress_durring_transfer=0
 local_dir="/mnt/f"
 remote_dir="/mnt/main"
-backup_cmd="rsync"
+backup_cmd="sudo rsync"
 
 # Functions
 displayHelp()
