@@ -1,4 +1,4 @@
-# Backup_Scripts
+# BackupScripts
 Scripts for backing up my network storage
 
 * RsyncBackup.sh
