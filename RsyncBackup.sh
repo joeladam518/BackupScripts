@@ -87,7 +87,7 @@ echo "$backup_cmd"
 read -p "Run command (Yes/No)? " -t 15  answer
 
 case ${answer} in
-    [Yy]* ) eval ${backup_cmd}; break ;;
+    [Yy]* ) eval "$backup_cmd" ;;
     [Nn]* ) exit 0 ;;
     * ) echo "Please answer yes or no."; exit 1 ;;
 esac
