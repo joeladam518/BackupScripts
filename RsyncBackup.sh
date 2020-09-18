@@ -4,9 +4,11 @@
 scriptName=${0}
 testing_mode=0
 compress_durring_transfer=0
-local_dir="/mnt/f"
+script_start=$(date '+%Y-%m-%dT%H%M%S%:::z')
+log_file="${HOME}/${script_start}_rsync_log.txt"
+backup_cmd="rsync"
+local_dir="/mnt/e"
 remote_dir="/mnt/main"
-backup_cmd="sudo rsync"
 
 # Functions
 displayHelp()
@@ -64,7 +66,7 @@ if [ "$compress_durring_transfer" == "1" ]; then
     backup_cmd="${backup_cmd} -z"
 fi
 
-backup_cmd="${backup_cmd} -arhX -vv --progress --delete-delay" # --update
+backup_cmd="${backup_cmd} -ahP -vv --delete-delay --log-file=${log_file}" # --update
 backup_cmd="${backup_cmd} --exclude=.recycle --exclude=System\ Volume\ Information"
 backup_cmd="${backup_cmd} jhaker@freenas.jhaker.net:${remote_dir} ${local_dir}"
 
@@ -78,5 +80,11 @@ while true; do
         * ) echo "Please answer yes or no."; exit 1 ;;
     esac
 done
+
+# Add when the script stopped running to the bottom of the log file
+script_end=$(date '+%Y-%m-%dT%H:%M:%S%:::z')
+echo "" >> "$log_file"
+echo "Script ended at ${script_end}" >> "$log_file"
+echo "" >> "$log_file"
 
 exit 0
