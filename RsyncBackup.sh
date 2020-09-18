@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
 # Variables
-scriptName=${0}
+scriptName="${0}"
 testing_mode=0
 compress_durring_transfer=0
-script_start=$(date '+%Y-%m-%dT%H%M%S%:::z')
+script_start="$(date "+%Y-%m-%dT%H%M%S%:::z")"
 log_file="${HOME}/${script_start}_rsync_log.txt"
 backup_cmd="rsync"
-local_dir="/mnt/e"
+local_dir="/mnt/i"
 remote_dir="/mnt/main"
 
 # Functions
@@ -41,6 +41,11 @@ done
 
 shift $((OPTIND-1))
 
+if [ ! -d "$local_dir" ]; then
+    echo "Can not back up to \"$local_dir\" it does not exist."
+    exit 1 
+fi
+
 # Determine which remote directory to back up
 what_to_backup=${1}
 if [ -z "$what_to_backup" ]; then
@@ -49,7 +54,7 @@ if [ -z "$what_to_backup" ]; then
     exit 1
 fi
 
-if [ "$what_to_backup" != "Files" ] && [ "$what_to_backup" != "Media" ]; then
+if [ "$what_to_backup" != "files" ] && [ "$what_to_backup" != "media" ]; then
     echo "Invalid Argument: ${what_to_backup}" 
     displayHelp
     exit 1
@@ -66,20 +71,18 @@ if [ "$compress_durring_transfer" == "1" ]; then
     backup_cmd="${backup_cmd} -z"
 fi
 
-backup_cmd="${backup_cmd} -ahP -vv --delete-delay --log-file=${log_file}" # --update
+backup_cmd="${backup_cmd} -ahP -vvv --delete-delay --log-file=${log_file}" # --update
 backup_cmd="${backup_cmd} --exclude=.recycle --exclude=System\ Volume\ Information"
 backup_cmd="${backup_cmd} jhaker@freenas.jhaker.net:${remote_dir} ${local_dir}"
 
 # Confirm, then run or not...
-while true; do
-    echo "$backup_cmd"
-    read -p "Run command (Yes/No)? " answer
-    case ${answer} in
-        [Yy]* ) eval ${backup_cmd}; break ;;
-        [Nn]* ) exit 0 ;;
-        * ) echo "Please answer yes or no."; exit 1 ;;
-    esac
-done
+echo "$backup_cmd"
+read -p "Run command (Yes/No)? " -t 15  answer
+case ${answer} in
+    [Yy]* ) eval ${backup_cmd}; break ;;
+    [Nn]* ) exit 0 ;;
+    * ) echo "Please answer yes or no."; exit 1 ;;
+esac
 
 # Add when the script stopped running to the bottom of the log file
 script_end=$(date '+%Y-%m-%dT%H:%M:%S%:::z')
