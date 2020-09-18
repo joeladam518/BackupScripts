@@ -1,13 +1,5 @@
 #!/usr/bin/env bash
 
-# Variables
-scriptName=${0}
-testing_mode=0
-compress_durring_transfer=0
-local_dir="/mnt/f"
-remote_dir="/mnt/main"
-backup_cmd="sudo rsync"
-
 # Functions
 displayHelp()
 {
@@ -17,16 +9,28 @@ displayHelp()
     echo "  -z  Compress files during transfer."
 } 
 
+# logging
+script_start="$(date "+%Y-%m-%dT%H%M%S%:::z")"
+log_file="${HOME}/${script_start}_rsync_log.txt"
+
+# directories
+remote_dir="/mnt/main"
+local_dir="/mnt/i"
+
+# Flags
+testing_mode="0"
+compress_durring_transfer="0"
+
 # Options
 while getopts ":htz" opt; do
     case ${opt} in
-        t)
-            testing_mode=1 
+        t)  
+            testing_mode="1"
             ;;
-        z)
-            compress_durring_transfer=1
+        z)  
+            compress_durring_transfer="1" 
             ;;
-        h) 
+        h)  
             displayHelp 
             exit 0
             ;;
@@ -39,15 +43,23 @@ done
 
 shift $((OPTIND-1))
 
-# Determine which remote directory to back up
-what_to_backup=${1}
+# Input
+scriptName="$0"
+what_to_backup="$1"
+
+# Start script
+if [ ! -d "$local_dir" ]; then
+    echo "Can not back up to \"$local_dir\" it does not exist."
+    exit 1 
+fi
+
 if [ -z "$what_to_backup" ]; then
     echo "You must tell me what to back up."
     displayHelp
     exit 1
 fi
 
-if [ "$what_to_backup" != "Files" ] && [ "$what_to_backup" != "Media" ]; then
+if [ "$what_to_backup" != "files" ] && [ "$what_to_backup" != "media" ]; then
     echo "Invalid Argument: ${what_to_backup}" 
     displayHelp
     exit 1
@@ -56,6 +68,8 @@ fi
 remote_dir="${remote_dir}/${what_to_backup}"
 
 # Build the rsync command
+backup_cmd="rsync"
+
 if [ "$testing_mode" == "1" ]; then
     backup_cmd="${backup_cmd} -n"
 fi
@@ -64,19 +78,23 @@ if [ "$compress_durring_transfer" == "1" ]; then
     backup_cmd="${backup_cmd} -z"
 fi
 
-backup_cmd="${backup_cmd} -arhX -vv --progress --delete-delay" # --update
+backup_cmd="${backup_cmd} -ahP -vv --delete-delay --log-file=${log_file}" # --update
 backup_cmd="${backup_cmd} --exclude=.recycle --exclude=System\ Volume\ Information"
 backup_cmd="${backup_cmd} jhaker@freenas.jhaker.net:${remote_dir} ${local_dir}"
 
 # Confirm, then run or not...
-while true; do
-    echo "$backup_cmd"
-    read -p "Run command (Yes/No)? " answer
-    case ${answer} in
-        [Yy]* ) eval ${backup_cmd}; break ;;
-        [Nn]* ) exit 0 ;;
-        * ) echo "Please answer yes or no."; exit 1 ;;
-    esac
-done
+echo "$backup_cmd"
+read -p "Run command (Yes/No)? " -t 15  answer
+
+case ${answer} in
+    [Yy]* ) eval ${backup_cmd}; break ;;
+    [Nn]* ) exit 0 ;;
+    * ) echo "Please answer yes or no."; exit 1 ;;
+esac
+
+script_end="$(date "+%Y-%m-%dT%H:%M:%S%:::z")"
+echo "" >> "$log_file"
+echo "Script ended at:   ${script_end}" >> "$log_file"
+echo "" >> "$log_file"
 
 exit 0
