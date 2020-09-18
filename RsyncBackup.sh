@@ -34,7 +34,8 @@ while getopts ":htz" opt; do
             displayHelp 
             exit 0
             ;;
-        \?) echo "Invalid Option: -${OPTARG}" 1>&2
+        \?) 
+            echo "Invalid Option: -${OPTARG}" 1>&2
             exit 1
             ;;
     esac
