@@ -96,5 +96,3 @@ script_end="$(date "+%Y-%m-%dT%H:%M:%S%:::z")"
 echo "" >> "$log_file"
 echo "Script ended at:   ${script_end}" >> "$log_file"
 echo "" >> "$log_file"
-
-exit 0
