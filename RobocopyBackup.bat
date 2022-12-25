@@ -1,27 +1,28 @@
 @ECHO OFF
 setlocal enableDelayedExpansion
 
-REM Used for outputting a /n (newline) in the cmd screen...
-REM -> Start newline
+REM # Used for outputting a /n (newline) in the cmd screen...
+REM # Start newline
 SET nl=^
 
 
-REM -> END newline **Has to be 2 new lines after the set command or it doesn't work**
+REM # END newline 
+REM # It has to be 2 new lines after the set command or it doesn't work.
 
-REM Set defualt Source and Destination paths..
+REM # Set defualt Source and Destination paths...
 SET "defSrcPth=m:\"
 SET "defDesPth=n:\"
 
-REM Set log file path..		****Make sure you replace "Your Username" with your username...****
-SET "logPth=C:\Users\Your Username\Desktop\backup_log.txt"
+REM # Set log file path... 
+REM # Make sure you replace "user name" with your user name.
 
 :PROMPT
-REM Ask the user to enter the Src and Des paths..
-ECHO Please enter the Source and Destination paths or hit Enter to try the default paths...
+REM # Ask the user to enter the Src and Des paths..
+ECHO Please enter the Source and Destination paths or hit enter to try the default paths...
 ECHO Examples: "g:\" or "h:\folderpath" or "\\server\sambashare"
 ECHO.
 
-REM If the user dosen't enter anything for the Source Path then try the default Source Path.
+REM # If the user doesn't enter anything for the source path then try the default source path.
 SET /P "srcPthInpt=Please the Source Path or just hit Enter: "
 IF DEFINED srcPthInpt (
 	ECHO The Source Drive is defined. YAY
@@ -36,7 +37,7 @@ IF DEFINED srcPthInpt (
 	ECHO.
 )
 
-REM If the user dosen't enter anything for the Destination Path then try the default Destination Path.
+REM # If the user doesn't enter anything for the destination path then try the default destination path.
 SET /P "desPthInpt=Please enter Destination Path or just hit Enter: "
 IF DEFINED desPthInpt (
 	ECHO The Destination path is defined. YAY
@@ -52,17 +53,17 @@ IF DEFINED desPthInpt (
 )
 
 :EXISTSSS
-REM Check if the Source and Destination paths Exist
+REM # Check if the source and destination paths exist.
 IF EXIST !srcPth! (
 	ECHO "!srcPth!" -- Source file path exists. We're good to go.
 ) ELSE (
-	ECHO "!srcPth!" is not a valid Destination file path try again...
+	ECHO "!srcPth!" is not a valid file path. Try Again...
 	GOTO END
 )
 IF EXIST !desPth! (
 	ECHO "!desPth!" -- Destination file path exists. We're good to go.
 ) ELSE (
-	ECHO "!desPth!" is not a valid Destination file path. try again...
+	ECHO "!desPth!" is not a valid file path. Try Again...
 	GOTO END
 )
 ECHO.
