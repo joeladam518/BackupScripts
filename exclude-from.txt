@@ -1,0 +1,9 @@
+- System Volume Information
+- .recycle/
+- .windows/
+- .DS_Store
+- .AppleDouble
+- .LSOverride
+- __MACOSX
+- *.swp
+- *.tmp
