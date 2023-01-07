@@ -91,7 +91,7 @@ parse_args() {
 # Start script
 parse_args "$@"
 
-log_path="${SCRIPT_DIR}/$(date "+%Y%m%dT%H%M%S")-rsync.log"
+log_path="${SCRIPT_DIR}/$(date "+%Y%m%d%H%M%S")-rsync.log"
 exclude_path="${SCRIPT_DIR}/exclude-from.txt"
 local_path="/mnt/e"
 remote_path="/mnt/main/${backup_directory}"
@@ -124,7 +124,7 @@ if [ "$compress_durring_transfer" == "1" ]; then
 fi
 
 backup_cmd="${backup_cmd} -ahP -vv --delete-delay --log-file=\"${log_path}\" --exclude-from=\"${exclude_path}\""
-backup_cmd="${backup_cmd} jhaker@192.168.1.42:${remote_path} ${local_path}"
+backup_cmd="${backup_cmd} jhaker@freenas.jhaker.net:${remote_path} ${local_path}"
 #----------------------------------------------------------------------------------------------------------------------
 
 echo
