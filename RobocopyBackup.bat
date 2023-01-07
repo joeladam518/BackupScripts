@@ -12,6 +12,8 @@ REM # It has to be 2 new lines after the set command or it doesn't work.
 REM # Set defualt Source and Destination paths...
 SET "defSrcPth=m:\"
 SET "defDesPth=n:\"
+SET logPth=%~dp0
+SET logPth=%logPth:~0,-1%\%date:~4,2%%date:~7,2%%date:~10,4%%time:~0,2%%time:~3,2%%time:~6,2%-robocopy.log
 
 REM # Set log file path... 
 REM # Make sure you replace "user name" with your user name.

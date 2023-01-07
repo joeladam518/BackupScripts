@@ -43,12 +43,20 @@ invalid_option() {
     exit 1
 }
 
-print_stats() {
-        cat << EOF
+print_info() {
+    local start_ts end_ts diff
+    start_ts="$(date -d "$started_at" +%s)"
+    end_ts="$(date -d "$ended_at" +%s)"
+    diff="$((end_ts-start_ts))"
+    time="$(printf "%02dh %02dm %02ds" $((diff / 3600)) $((diff / 60 % 60)) $((diff % 60)))"
+    
+    cat << EOF
 
 $(basename "${BASH_SOURCE[0]}"):
-Started at: ${1:-""}
-Ended at:   ${2:-""}
+Synced: ${remote_path} > ${local_path}/${backup_directory}
+Started at: ${started_at:-""}
+Ended at:   ${ended_at:-""}
+Total time: ${time}
 
 EOF
 }
@@ -131,14 +139,12 @@ echo
 echo "$backup_cmd"
 echo
 
-if ! confirm "Run command? (yes/No):\n> "; then
-    echo "Exiting..."
-    exit 
+if confirm "Run command? (yes/No):\n> "; then
+    started_at="$(date --iso-8601="seconds")"
+    eval "$backup_cmd"
+    ended_at="$(date --iso-8601="seconds")"
+
+    info="$(print_info)"
+    echo "$info" >> "${log_path}"
+    echo "$info"
 fi
-
-started_at="$(date --iso-8601="seconds")"
-eval "$backup_cmd"
-ended_at="$(date --iso-8601="seconds")"
-
-print_stats "$started_at" "$ended_at" >> "$log_path"
-print_stats "$started_at" "$ended_at"

@@ -1,9 +1,14 @@
-- System Volume Information
+- $RECYCLE.BIN/
+- RECYCLER/
+- System Volume Information/
+- cache/
 - .recycle/
-- .windows/
+- .windows
 - .DS_Store
 - .AppleDouble
 - .LSOverride
 - __MACOSX
 - *.swp
 - *.tmp
+- Thumbs.db
+- thumbs.db
