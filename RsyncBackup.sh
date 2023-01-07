@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null 2>&1 && pwd -P)"
 # Functions
 usage() {
     cat << EOF
-Usage: $(basename "${0}") [-h] [-t] [-z] [-f] {files|media}
+Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-t] [-z] [-f] {files|media}
 
 Backup your NAS
 
@@ -41,6 +41,16 @@ invalid_argument() {
 invalid_option() {
     echo "Invalid option: -${1}" 1>&2
     exit 1
+}
+
+print_stats() {
+        cat << EOF
+
+$(basename "${BASH_SOURCE[0]}"):
+Started at: ${1:-""}
+Ended at:   ${2:-""}
+
+EOF
 }
 
 parse_long_options() {
@@ -81,9 +91,9 @@ parse_args() {
 # Start script
 parse_args "$@"
 
-log_file="${SCRIPT_DIR}/$(date "+%Y-%m-%dT%H%M%S%:::z")_rsync_log.txt"
+log_path="${SCRIPT_DIR}/$(date "+%Y%m%dT%H%M%S")-rsync.log"
 exclude_path="${SCRIPT_DIR}/exclude-from.txt"
-local_path="/mnt/i"
+local_path="/mnt/e"
 remote_path="/mnt/main/${backup_directory}"
 
 if [ -z "$backup_directory" ] || { [ "$backup_directory" != "files" ] && [ "$backup_directory" != "media" ]; }; then
@@ -113,20 +123,22 @@ if [ "$compress_durring_transfer" == "1" ]; then
     backup_cmd="${backup_cmd} -z"
 fi
 
-backup_cmd="${backup_cmd} -ahP -vv --delete-delay --log-file=\"${log_file}\" --exclude-from=\"${exclude_path}\""
-backup_cmd="${backup_cmd} jhaker@freenas.jhaker.net:${remote_path} ${local_path}"
+backup_cmd="${backup_cmd} -ahP -vv --delete-delay --log-file=\"${log_path}\" --exclude-from=\"${exclude_path}\""
+backup_cmd="${backup_cmd} jhaker@192.168.1.42:${remote_path} ${local_path}"
 #----------------------------------------------------------------------------------------------------------------------
 
 echo
 echo "$backup_cmd"
 echo
 
-if confirm "Run command? (yes/No):\n> "; then
-    eval "$backup_cmd"
-
-    echo "" >> "$log_file"
-    echo "Script ended at:   $(date "+%Y-%m-%dT%H:%M:%S%:::z")" >> "$log_file"
-    echo "" >> "$log_file"
-else
+if ! confirm "Run command? (yes/No):\n> "; then
     echo "Exiting..."
+    exit 
 fi
+
+started_at="$(date --iso-8601="seconds")"
+eval "$backup_cmd"
+ended_at="$(date --iso-8601="seconds")"
+
+print_stats "$started_at" "$ended_at" >> "$log_path"
+print_stats "$started_at" "$ended_at"
