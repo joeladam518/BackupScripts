@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -Eeo pipefail
+trap cleanup SIGINT SIGTERM ERR EXIT
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null 2>&1 && pwd -P)"
 
@@ -49,7 +50,7 @@ print_info() {
     end_ts="$(date -d "$ended_at" +%s)"
     diff="$((end_ts-start_ts))"
     time="$(printf "%02dh %02dm %02ds" $((diff / 3600)) $((diff / 60 % 60)) $((diff % 60)))"
-    
+
     cat << EOF
 
 $(basename "${BASH_SOURCE[0]}"):
@@ -59,6 +60,17 @@ Ended at:   ${ended_at:-""}
 Total time: ${time}
 
 EOF
+
+    return 0
+}
+
+cleanup() {
+    trap - SIGINT SIGTERM ERR EXIT
+    info="Script ended at: $(date --iso-8601="seconds")"
+    echo "$info" >> "${log_path}"
+    echo "$info"
+
+    return 0
 }
 
 parse_long_options() {
