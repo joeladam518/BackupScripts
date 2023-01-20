@@ -53,7 +53,7 @@ print_info() {
 
     cat << EOF
 
-$(basename "${BASH_SOURCE[0]}"):
+$(basename "${BASH_SOURCE[0]}")
 Synced: ${remote_path} > ${local_path}/${backup_directory}
 Started at: ${started_at:-""}
 Ended at:   ${ended_at:-""}
