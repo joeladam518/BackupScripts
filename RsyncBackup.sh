@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 set -Eeo pipefail
-trap cleanup SIGINT SIGTERM ERR EXIT
+trap cleanup SIGINT SIGTERM ERR
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null 2>&1 && pwd -P)"
 
@@ -54,7 +54,7 @@ print_info() {
     cat << EOF
 
 $(basename "${BASH_SOURCE[0]}")
-Synced: ${remote_path} > ${local_path}/${backup_directory}
+Synced:     ${remote_path} > ${local_path}/${backup_directory}
 Started at: ${started_at:-""}
 Ended at:   ${ended_at:-""}
 Total time: ${time}
@@ -65,7 +65,7 @@ EOF
 }
 
 cleanup() {
-    trap - SIGINT SIGTERM ERR EXIT
+    trap - SIGINT SIGTERM ERR
     info="Script ended at: $(date --iso-8601="seconds")"
     echo "$info" >> "${log_path}"
     echo "$info"
@@ -104,6 +104,7 @@ parse_args() {
 
     # args
     backup_directory="${1:-""}"
+    local_letter_drive="${2:-"e"}"
 
     return 0
 }
@@ -113,7 +114,7 @@ parse_args "$@"
 
 log_path="${SCRIPT_DIR}/$(date "+%Y%m%d%H%M%S")-rsync.log"
 exclude_path="${SCRIPT_DIR}/exclude-from.txt"
-local_path="/mnt/e"
+local_path="/mnt/${local_letter_drive}"
 remote_path="/mnt/main/${backup_directory}"
 
 if [ -z "$backup_directory" ] || { [ "$backup_directory" != "files" ] && [ "$backup_directory" != "media" ]; }; then
