@@ -1,7 +1,6 @@
 - $RECYCLE.BIN/
 - RECYCLER/
 - System Volume Information/
-- cache/
 - .recycle/
 - .windows
 - .DS_Store
