@@ -5,10 +5,16 @@ trap cleanup SIGINT SIGTERM ERR
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null 2>&1 && pwd -P)"
 
+# Variables
+SRC_PATH=""
+DEST_PATH=""
+TESTING="0"
+COMPRESS_DURRING_TRANSFER="0"
+
 # Functions
 usage() {
     cat << EOF
-Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-t] [-z] [-f] {files|media}
+Usage: $(basename "${BASH_SOURCE[0]}") [-h]
 
 Backup your NAS
 
@@ -17,6 +23,15 @@ Options:
 -t, --test      Testing mode. Adds (-n) to the rsync command
 -z, --zip       Compress files during transfer
 EOF
+    return 0
+}
+
+cleanup() {
+    trap - SIGINT SIGTERM ERR
+    info="Script ended at: $(date --iso-8601="seconds")"
+    echo "$info" >> "${log_path}"
+    echo "$info"
+
     return 0
 }
 
@@ -32,6 +47,22 @@ confirm() {
     done
 
     return 1
+}
+
+choose_source_path() {
+    local type dest_paths
+    dest="${1:-""}" # files or media
+    dest_paths=()
+
+    if [ -z "$dest" ]; then
+        echo "Invalid dest: \"$dest\"" 1>&2
+        exit 1
+    fi
+
+    
+
+
+
 }
 
 invalid_argument() {
@@ -64,14 +95,6 @@ EOF
     return 0
 }
 
-cleanup() {
-    trap - SIGINT SIGTERM ERR
-    info="Script ended at: $(date --iso-8601="seconds")"
-    echo "$info" >> "${log_path}"
-    echo "$info"
-
-    return 0
-}
 
 parse_long_options() {
     case "$1" in
