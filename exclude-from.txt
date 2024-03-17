@@ -11,3 +11,4 @@
 - *.tmp
 - Thumbs.db
 - thumbs.db
+- proxmox/
