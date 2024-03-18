@@ -38,6 +38,16 @@ EOF
     return 0
 }
 
+cleanup() {
+    trap - SIGINT SIGTERM ERR
+    local info
+    info="${BASH_SOURCE[0]} ended at: $(date --iso-8601="seconds")"
+    echo "$info" >> "${log_path}"
+    echo "$info"
+
+    return 0
+}
+
 get_info() {
     local start_ts end_ts diff script_time now
     now="$(date --iso-8601="seconds")"
@@ -55,16 +65,6 @@ Ended at:   ${SCRIPT_ENDED_AT:-"$now"}
 Total time: ${script_time}
 
 EOF
-
-    return 0
-}
-
-cleanup() {
-    trap - SIGINT SIGTERM ERR
-    local info
-    info="$(get_info)"
-    echo "$info" >> "${LOG_PATH}"
-    echo "$info"
 
     return 0
 }
