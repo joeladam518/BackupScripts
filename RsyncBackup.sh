@@ -198,9 +198,9 @@ is_valid_remote_directory() {
         return 1
     fi
 
-    # if ! ssh "$SSH_HOST" "[ -d \"$path\" ] && [ -r \"$path\" ]"; then
-    #     return 1
-    # fi
+    if ! ssh "$SSH_HOST" "[ -d \"$path\" ] && [ -r \"$path\" ]"; then
+        return 1
+    fi
 
     return 0
 }
