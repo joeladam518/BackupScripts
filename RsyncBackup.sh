@@ -70,9 +70,7 @@ EOF
 }
 
 build_rsync_command() {
-    local cmd
-    
-    cmd="rsync"
+    local cmd="rsync"
 
     if [ "$TESTING_MODE" == "1" ]; then
         cmd="${cmd} -n"
@@ -120,8 +118,7 @@ invalid_option() {
 }
 
 is_valid_local_directory() {
-    local path
-    path="${1:-""}"
+    local path="${1:-""}"
     
     if [ -z "$path" ]; then
         return 1
