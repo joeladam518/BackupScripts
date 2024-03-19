@@ -1,20 +1,23 @@
 #!/usr/bin/env bash
 
+# Script to backup my NAS to a local disk
+
 set -Eeo pipefail
-trap cleanup SIGINT SIGTERM ERR
+trap 'cleanup' SIGINT SIGTERM ERR EXIT
 
 # Variables
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null 2>&1 && pwd -P)"
 COMPRESS_DURRING_TRANSFER="0"
 EXCLUDE_PATH="${SCRIPT_DIR}/exclude-from.txt"
-LOG_PATH="${SCRIPT_DIR}/$(date "+%Y%m%d%H%M%S")-rsync.log"
+LOG_PATH="${SCRIPT_DIR}/$(date -u "+%Y%m%d%H%M%S")-rsync.log"
 LOCAL_PATH=""   # destination
 LOCAL_TOP_LEVEL_DIRECTORY=""
 REMOTE_PATH=""  # source
-REMOTE_TOP_LEVEL_SUBDIRECTORIES=( "files" "media" )
 SCRIPT_ARGUMENTS=()
+SEARCH_PATHS=("/mnt")
 SSH_HOST="jhaker@freenas.jhaker.net"
 TESTING_MODE="0"
+TOP_LEVEL_SUBDIRECTORIES=("files" "media")
 SCRIPT_RESULT="0"
 SCRIPT_STARTED_AT=""
 SCRIPT_ENDED_AT=""
@@ -24,63 +27,50 @@ usage() {
     cat << EOF
 Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-l {LOCAL_PATH}] [-r {REMOTE_PATH}] [-t] [-z] [remote_path]
 
-Backup your NAS
+Backup my NAS to a local disk
 
 Arguments
   name {files,media}          A top level remote (nas) directory name
 
-Options:                     
+Options:
   -h, --help                  Print this help and exit
   -l, --local {LOCAL_PATH}    The Local path to sync to
+  -s, --search {SEARCH_PATHS} The paths to look for backup disks
   -t, --test                  Testing mode (Adds '-n' to the rsync command)
   -z, --zip                   Compress files during transfer (Adds '-z' to the rsync command)
 EOF
     return 0
 }
 
+# shellcheck disable=SC2317
 cleanup() {
-    trap - SIGINT SIGTERM ERR
-    local info
-    info="${BASH_SOURCE[0]} ended at: $(date --iso-8601="seconds")"
-    echo "$info" >> "${log_path}"
+    trap - SIGINT SIGTERM ERR EXIT
+    info="$(basename "${BASH_SOURCE[0]}") ended at $(date -u "+%F %T")"
+    echo "$info" >> "${LOG_PATH}"
+    echo ""
     echo "$info"
 
     return 0
 }
 
+# shellcheck disable=SC2317
 get_info() {
     local start_ts end_ts diff script_time now
-    now="$(date --iso-8601="seconds")"
-    start_ts="$(date -d "${SCRIPT_STARTED_AT:-"$now"}" +%s)"
-    end_ts="$(date -d "${SCRIPT_ENDED_AT:-"$now"}" +%s)"
+    now="$(date -u --iso-8601="seconds")"
+    start_ts="$(date -u -d "${SCRIPT_STARTED_AT:-"$now"}" +%s)"
+    end_ts="$(date -u -d "${SCRIPT_ENDED_AT:-"$now"}" +%s)"
     diff="$(( end_ts - start_ts ))"
     script_time="$(printf "%02dh %02dm %02ds" $((diff / 3600)) $((diff / 60 % 60)) $((diff % 60)))"
 
     cat << EOF
 
 $(basename "${BASH_SOURCE[0]}")
-Synced:     ${SSH_HOST}:${REMOTE_PATH:-"(unknown)"} > ${LOCAL_PATH:-"(unknown)"}
-Started at: ${SCRIPT_STARTED_AT:-"$now"}
-Ended at:   ${SCRIPT_ENDED_AT:-"$now"}
-Total time: ${script_time}
+sync:       ${SSH_HOST}:${REMOTE_PATH:-"(unknown)"} > ${LOCAL_PATH:-"(unknown)"}
+started at: $(date -u -d "${SCRIPT_STARTED_AT:-"$now"}" "+%F %T")
+ended at:   $(date -u -d "${SCRIPT_ENDED_AT:-"$now"}" "+%F %T")
+total time: ${script_time}
 
 EOF
-
-    return 0
-}
-
-build_rsync_command() {
-    local cmd="rsync"
-
-    if [ "$TESTING_MODE" == "1" ]; then
-        cmd="${cmd} -n"
-    fi
-
-    if [ "$COMPRESS_DURRING_TRANSFER" == "1" ]; then
-        cmd="${cmd} -z"
-    fi
-
-    echo "${cmd} -ahP -vv --delete-delay --log-file=\"${LOG_PATH}\" --exclude-from=\"${EXCLUDE_PATH}\" ${SSH_HOST}:${REMOTE_PATH%/}/ ${LOCAL_PATH%/}/"
 
     return 0
 }
@@ -99,6 +89,22 @@ confirm() {
     return 1
 }
 
+build_rsync_command() {
+    local cmd="rsync"
+
+    if [ "$TESTING_MODE" == "1" ]; then
+        cmd="${cmd} -n"
+    fi
+
+    if [ "$COMPRESS_DURRING_TRANSFER" == "1" ]; then
+        cmd="${cmd} -z"
+    fi
+
+    echo "${cmd} -ahP -vv --delete-delay --log-file=\"${LOG_PATH}\" --exclude-from=\"${EXCLUDE_PATH}\" ${SSH_HOST}:${REMOTE_PATH%/}/ ${LOCAL_PATH%/}/"
+
+    return 0
+}
+
 invalid_path() {
     local type="${1:-""}"
     local message="Invalid ${type} path"
@@ -110,82 +116,6 @@ invalid_path() {
 
     echo "$message" 1>&2
     exit 1
-}
-
-invalid_option() {
-    echo "Invalid option: ${1:-""}" 1>&2
-    exit 1
-}
-
-is_valid_local_directory() {
-    local path="${1:-""}"
-    
-    if [ -z "$path" ]; then
-        return 1
-    fi
-
-    if [[ ! "$path" =~ ^/mnt/[a-z].* ]]; then
-        return 1
-    fi
-
-    if [ ! -d "$path" ]; then
-        return 1    
-    fi
-
-    if [ ! -r "$path" ]; then
-        return 1    
-    fi
-
-    return 0
-}
-
-# check if the local directory contains the top level subdirectories of the nas
-is_valid_local_top_level_directory() {
-    local path="${1:-""}"
-    local subdirectory_count=-1
-
-    if [ -z "$path" ]; then
-        return 1
-    fi
-
-    if [[ ! "$path" =~ ^/mnt/[a-z].* ]]; then
-        return 1
-    fi
-
-    if [ ! -d "$path" ]; then
-        return 1    
-    fi
-
-    if [ ! -r "$path" ]; then
-        return 1    
-    fi
-
-    # -mindepth 1 -> dont count $path
-    # -maxdepth 1 -> dont recursivly count directories
-    # -not -name 'System Volume Information' -> ignore
-    # -not -name '$RECYCLE.BIN' -> ignore
-    # -type d -> only direcotries 
-    subdirectory_count="$(find "${path%/}" -mindepth 1 -maxdepth 1 -not -name 'System Volume Information' -not -name '$RECYCLE.BIN' -type d | wc -l )"
-
-    # if it's empty its valid
-    if [ "$subdirectory_count" -eq 0 ]; then
-        return 0;
-    fi
-    
-    # if it doesn't have the same number of directories it invalid
-    if [ "$subdirectory_count" -ne ${#REMOTE_TOP_LEVEL_SUBDIRECTORIES[@]} ]; then
-        return 1
-    fi
-
-    # make sure the subdirecories exist
-    for subdirectory in "${REMOTE_TOP_LEVEL_SUBDIRECTORIES[@]}"
-    do
-        if [ ! -d "${path%/}/${subdirectory}" ] || [ ! -r "${path%/}/${subdirectory}" ]; then
-            return 1
-        fi
-    done
-
-    return 0
 }
 
 is_valid_remote_directory() {
@@ -210,20 +140,90 @@ is_valid_remote_top_level_directory_name() {
         return 1
     fi
 
-    for sub in "${REMOTE_TOP_LEVEL_SUBDIRECTORIES[@]}"
+    for sub in "${TOP_LEVEL_SUBDIRECTORIES[@]}"
     do
         if [ "_$sub" == "_$name" ]; then
             return 0
         fi
     done
 
-    return 1 
+    return 1
+}
+
+get_remote_paths() {
+    if is_valid_remote_top_level_directory_name "$REMOTE_PATH"; then
+        REMOTE_PATH="/mnt/main/${REMOTE_PATH}"
+    fi
+
+    return 0
+}
+
+is_valid_local_directory() {
+    local path="${1:-""}"
+
+    if [ -z "$path" ]; then
+        return 1
+    fi
+
+    if [ ! -d "$path" ]; then
+        return 1
+    fi
+
+    if [ ! -r "$path" ]; then
+        return 1
+    fi
+
+    return 0
+}
+
+is_valid_local_top_level_directory() {
+    local path="${1:-""}"
+    local subdirectory_count=-1
+
+    if [ -z "$path" ]; then
+        return 1
+    fi
+
+    if [ ! -d "$path" ]; then
+        return 1
+    fi
+
+    if [ ! -r "$path" ]; then
+        return 1
+    fi
+
+    # -mindepth 1 -> dont count $path
+    # -maxdepth 1 -> dont recursivly count directories
+    # -not -name 'System Volume Information' -> ignore
+    # -not -name '$RECYCLE.BIN' -> ignore
+    # -type d -> only direcotries
+    subdirectory_count="$(find "${path%/}" -mindepth 1 -maxdepth 1 -not -name 'System Volume Information' -not -name '$RECYCLE.BIN' -type d | wc -l )"
+
+    # if it's empty its valid
+    if [ "$subdirectory_count" -eq 0 ]; then
+        return 0;
+    fi
+
+    # if it doesn't have the same number of directories it invalid
+    if [ "$subdirectory_count" -ne ${#TOP_LEVEL_SUBDIRECTORIES[@]} ]; then
+        return 1
+    fi
+
+    # make sure the subdirecories exist
+    for subdirectory in "${TOP_LEVEL_SUBDIRECTORIES[@]}"
+    do
+        if [ ! -d "${path%/}/${subdirectory}" ] || [ ! -r "${path%/}/${subdirectory}" ]; then
+            return 1
+        fi
+    done
+
+    return 0
 }
 
 get_local_paths() {
     local choice=""
     local disks=()
-    local disks_indexes=() 
+    local disks_indexes=()
     local remote_sub_path=""
     local i=0
     local path=""
@@ -237,24 +237,29 @@ get_local_paths() {
     # shellcheck disable=SC2001
     remote_sub_path="$(echo "$REMOTE_PATH" | sed -e 's/^\/mnt\/main//')"
     remote_sub_path="${remote_sub_path#/}"
-    
-    if [ -n "$LOCAL_PATH" ] && [[ "$LOCAL_PATH" =~ ^/mnt/[a-z]/? ]]; then
+
+    if [ -n "$LOCAL_PATH" ]; then
         LOCAL_TOP_LEVEL_DIRECTORY="${LOCAL_PATH%/}"
         LOCAL_PATH="${LOCAL_TOP_LEVEL_DIRECTORY}/${remote_sub_path}"
         return 0
     fi
-    
+
     # reset the local path and ask the user
     LOCAL_TOP_LEVEL_DIRECTORY=""
     LOCAL_PATH=""
 
-    # find the backup disks
-    for path in /mnt/*
+    # lookn in the search paths for backup disks
+    for search_path in "${SEARCH_PATHS[@]}"
     do
-        if is_valid_local_top_level_directory "$path"; then
-            disks+=( "$path" )
-        fi
+        for path in "$search_path"/*
+        do
+            if is_valid_local_top_level_directory "$path"; then
+                disks+=( "$path" )
+            fi
+        done
     done
+
+    echo ""
 
     # no disks found
     if [ ${#disks[@]} -eq 0 ]; then
@@ -273,7 +278,7 @@ get_local_paths() {
     i=0
     while [ $i -lt $tries ]
     do
-        read -r -p "> " choice
+        read -r -t 10 -p "> " choice
 
         if [ -n "$choice" ] && grep -q "$choice" <<< "${disks_indexes[@]}"; then
             LOCAL_TOP_LEVEL_DIRECTORY="${disks[$choice]%/}"
@@ -292,12 +297,9 @@ get_local_paths() {
     return 0
 }
 
-get_remote_paths() {
-    if is_valid_remote_top_level_directory_name "$REMOTE_PATH"; then
-        REMOTE_PATH="/mnt/main/${REMOTE_PATH}"
-    fi
-    
-    return 0
+invalid_option() {
+    echo "Invalid option: ${1:-""}" 1>&2
+    exit 1
 }
 
 parse_option_with_arg() {
@@ -318,18 +320,12 @@ parse_option_with_arg() {
 }
 
 parse_params() {
-    local arg next_arg
-    COMPRESS_DURRING_TRANSFER="0"
-    LOCAL_TOP_LEVEL_DIRECTORY=""
-    LOCAL_PATH=""   # destination
-    REMOTE_PATH=""  # source
-    SCRIPT_ARGUMENTS=()
-    TESTING_MODE="0"
-    
+    local arg next_arg temp_value
 
     while :; do
         arg="${1:-""}"
         next_arg="${2:-""}"
+        temp_value=""
 
         if [ -z "$arg" ]; then
             break
@@ -344,6 +340,12 @@ parse_params() {
             -l | --local*)
                 LOCAL_PATH="$(parse_option_with_arg "-l" "--local" "$arg" "$next_arg")"
                 [ "$LOCAL_PATH" == "$next_arg" ] && shift
+                ;;
+            -s | --search*)
+                temp_value="$(parse_option_with_arg "-s" "--search" "$arg" "$next_arg")"
+                [ "$temp_value" == "$next_arg" ] && shift
+                temp_value="$(echo "$temp_value" | tr ',' ' ' | tr -s ' ')"
+                read -r -a SEARCH_PATHS <<< "$temp_value"
                 ;;
             -t | --test)
                 TESTING_MODE="1"
@@ -375,7 +377,7 @@ parse_params() {
 
     # parse & validate the local directory path
     get_local_paths
-    
+
     if ! is_valid_local_top_level_directory "$LOCAL_TOP_LEVEL_DIRECTORY"; then
         invalid_path "local top level directory" "\"${LOCAL_TOP_LEVEL_DIRECTORY}\""
     fi
@@ -397,20 +399,18 @@ parse_params() {
 #----------------------------------------------------------------------------------------------------------------------
 parse_params "$@"
 
-# Build the rsync command
 rsync_command="$(build_rsync_command)"
 
-# echo the command to make sure 
+# echo the command to make sure it's correct
 echo
 echo "$rsync_command"
 echo
 
 if confirm "Are you sure you want to continue? (yes/No):\n> "; then
-    SCRIPT_STARTED_AT="$(date --iso-8601="seconds")"
+    SCRIPT_STARTED_AT="$(date -u --iso-8601="seconds")"
     eval "$rsync_command"
     SCRIPT_RESULT=$?
-    SCRIPT_ENDED_AT="$(date --iso-8601="seconds")"
-
+    SCRIPT_ENDED_AT="$(date -u --iso-8601="seconds")"
     info="$(get_info)"
     echo "$info" >> "${LOG_PATH}"
     echo "$info"
