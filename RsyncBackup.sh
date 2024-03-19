@@ -3,7 +3,7 @@
 # Script to backup my NAS to a local disk
 
 set -Eeo pipefail
-trap 'cleanup' SIGINT SIGTERM ERR EXIT
+trap 'cleanup' SIGINT SIGTERM ERR
 
 # Variables
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null 2>&1 && pwd -P)"
@@ -399,13 +399,16 @@ parse_params() {
 #----------------------------------------------------------------------------------------------------------------------
 parse_params "$@"
 
+# build the command
 rsync_command="$(build_rsync_command)"
 
-# echo the command to make sure it's correct
-echo
-echo "$rsync_command"
-echo
+# append the command to the log file
+printf "%s\n\n" "$rsync_command" >> "${LOG_PATH}"
 
+# output the command to the console (just in case)
+printf "\n%s\n\n" "$rsync_command"
+
+# run the command (or not)
 if confirm "Are you sure you want to continue? (yes/No):\n> "; then
     SCRIPT_STARTED_AT="$(date --iso-8601="seconds")"
     eval "$rsync_command"
