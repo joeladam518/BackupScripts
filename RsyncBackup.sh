@@ -9,7 +9,7 @@ trap 'cleanup' SIGINT SIGTERM ERR EXIT
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null 2>&1 && pwd -P)"
 COMPRESS_DURRING_TRANSFER="0"
 EXCLUDE_PATH="${SCRIPT_DIR}/exclude-from.txt"
-LOG_PATH="${SCRIPT_DIR}/$(date -u "+%Y%m%d%H%M%S")-rsync.log"
+LOG_PATH="${SCRIPT_DIR}/$(date "+%Y%m%d%H%M%S")-rsync.log"
 LOCAL_PATH=""   # destination
 LOCAL_TOP_LEVEL_DIRECTORY=""
 REMOTE_PATH=""  # source
@@ -45,7 +45,7 @@ EOF
 # shellcheck disable=SC2317
 cleanup() {
     trap - SIGINT SIGTERM ERR EXIT
-    info="$(basename "${BASH_SOURCE[0]}") ended at $(date -u "+%F %T")"
+    info="$(basename "${BASH_SOURCE[0]}") ended at $(date "+%F %T")"
     echo "$info" >> "${LOG_PATH}"
     echo ""
     echo "$info"
@@ -56,9 +56,9 @@ cleanup() {
 # shellcheck disable=SC2317
 get_info() {
     local start_ts end_ts diff script_time now
-    now="$(date -u --iso-8601="seconds")"
-    start_ts="$(date -u -d "${SCRIPT_STARTED_AT:-"$now"}" +%s)"
-    end_ts="$(date -u -d "${SCRIPT_ENDED_AT:-"$now"}" +%s)"
+    now="$(date --iso-8601="seconds")"
+    start_ts="$(date -d "${SCRIPT_STARTED_AT:-"$now"}" +%s)"
+    end_ts="$(date -d "${SCRIPT_ENDED_AT:-"$now"}" +%s)"
     diff="$(( end_ts - start_ts ))"
     script_time="$(printf "%02dh %02dm %02ds" $((diff / 3600)) $((diff / 60 % 60)) $((diff % 60)))"
 
@@ -66,8 +66,8 @@ get_info() {
 
 $(basename "${BASH_SOURCE[0]}")
 sync:       ${SSH_HOST}:${REMOTE_PATH:-"(unknown)"} > ${LOCAL_PATH:-"(unknown)"}
-started at: $(date -u -d "${SCRIPT_STARTED_AT:-"$now"}" "+%F %T")
-ended at:   $(date -u -d "${SCRIPT_ENDED_AT:-"$now"}" "+%F %T")
+started at: $(date -d "${SCRIPT_STARTED_AT:-"$now"}" "+%F %T")
+ended at:   $(date -d "${SCRIPT_ENDED_AT:-"$now"}" "+%F %T")
 total time: ${script_time}
 
 EOF
@@ -407,10 +407,10 @@ echo "$rsync_command"
 echo
 
 if confirm "Are you sure you want to continue? (yes/No):\n> "; then
-    SCRIPT_STARTED_AT="$(date -u --iso-8601="seconds")"
+    SCRIPT_STARTED_AT="$(date --iso-8601="seconds")"
     eval "$rsync_command"
     SCRIPT_RESULT=$?
-    SCRIPT_ENDED_AT="$(date -u --iso-8601="seconds")"
+    SCRIPT_ENDED_AT="$(date --iso-8601="seconds")"
     info="$(get_info)"
     echo "$info" >> "${LOG_PATH}"
     echo "$info"
